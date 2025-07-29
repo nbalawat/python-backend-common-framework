@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'Module to release (or "all" for all modules)'
+        required: true
+        default: 'all'
+      version:
+        description: 'Version to release'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        uv venv
+        uv sync --all-extras
+    
+    - name: Run tests
+      run: |
+        make test
+    
+    - name: Build packages
+      run: |
+        if [ "${{ github.event.inputs.module }}" = "all" ]; then
+          make build
+        else
+          cd ${{ github.event.inputs.module }} && uv build
+        fi
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: |
+          */dist/*
+          dist/*
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist
+    
+    - name: Publish to PyPI
+      env:
+        UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        if [ "${{ github.event.inputs.module }}" = "all" ]; then
+          for module in core cloud k8s testing events pipelines workflows llm agents data; do
+            echo "Publishing $module..."
+            uv publish dist/$module-*.whl dist/$module-*.tar.gz
+          done
+        else
+          uv publish dist/${{ github.event.inputs.module }}-*.whl dist/${{ github.event.inputs.module }}-*.tar.gz
+        fi
+
+  create-release:
+    needs: [build, publish-pypi]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          ## Python Commons ${{ github.ref_name }}
+          
+          ### What's Changed
+          * See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details
+          
+          ### Installation
+          ```bash
+          pip install commons-core==${{ github.ref_name }}
+          pip install commons-cloud[aws,gcp,azure]==${{ github.ref_name }}
+          pip install commons-k8s[argo]==${{ github.ref_name }}
+          # ... other modules
+          ```
+        files: |
+          dist/**/*.whl
+          dist/**/*.tar.gz
+        draft: false
+        prerelease: false
+
+  publish-docs:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        uv venv
+        uv pip install mkdocs mkdocs-material mkdocstrings[python]
+    
+    - name: Build documentation
+      run: |
+        uv run mkdocs build
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./site

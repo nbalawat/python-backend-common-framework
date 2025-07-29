@@ -1,0 +1,128 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        uv venv
+        uv sync --all-extras
+        uv pip install bandit safety pip-audit semgrep
+    
+    - name: Run Bandit
+      run: |
+        uv run bandit -r */src -f json -o bandit-results.json || true
+    
+    - name: Run Safety Check
+      run: |
+        uv run safety check --json --output safety-results.json || true
+    
+    - name: Run pip-audit
+      run: |
+        uv run pip-audit --format json --output pip-audit-results.json || true
+    
+    - name: Run Semgrep
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: >-
+          p/security-audit
+          p/python
+          p/owasp-top-ten
+    
+    - name: Upload scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan-results
+        path: |
+          bandit-results.json
+          safety-results.json
+          pip-audit-results.json
+    
+    - name: Create Security Report
+      if: always()
+      run: |
+        echo "# Security Scan Report" > security-report.md
+        echo "" >> security-report.md
+        echo "## Bandit Results" >> security-report.md
+        if [ -f bandit-results.json ]; then
+          echo '```json' >> security-report.md
+          cat bandit-results.json >> security-report.md
+          echo '```' >> security-report.md
+        fi
+        echo "" >> security-report.md
+        echo "## Safety Check Results" >> security-report.md
+        if [ -f safety-results.json ]; then
+          echo '```json' >> security-report.md
+          cat safety-results.json >> security-report.md
+          echo '```' >> security-report.md
+        fi
+    
+    - name: Comment PR
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request' && always()
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('security-report.md', 'utf8');
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          });
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: moderate
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python
+    
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v2
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2

@@ -1,0 +1,45 @@
+[project]
+name = "commons-events"
+version = "0.1.0"
+description = "Event-driven architecture utilities for Python Commons"
+requires-python = ">=3.11"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Python Commons Team", email = "team@pythoncommons.org"}
+]
+dependencies = [
+    "commons-core",
+    "aiokafka>=0.8.0",
+    "confluent-kafka>=2.2.0",
+    "aio-pika>=9.2.0",
+    "google-cloud-pubsub>=2.18.0",
+    "boto3>=1.28.0",
+    "avro-python3>=1.10.0",
+    "jsonschema>=4.19.0",
+    "protobuf>=4.24.0",
+]
+
+
+[tool.uv.sources]
+commons-core = { workspace = true }
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+]
+kafka = ["aiokafka>=0.8.0", "confluent-kafka>=2.2.0"]
+rabbitmq = ["aio-pika>=9.2.0"]
+pubsub = ["google-cloud-pubsub>=2.18.0"]
+sns = ["boto3>=1.28.0"]
+streaming = ["apache-beam>=2.50.0", "pyspark>=3.5.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/commons_events"]
