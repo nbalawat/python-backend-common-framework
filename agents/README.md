@@ -1,26 +1,43 @@
 # Commons Agents
 
-Agent orchestration framework with support for multiple agent types and integrations.
-
-## Features
-
-- **Agent Types**: ReAct, plan-and-execute, conversational, tool-using agents
-- **Framework Integration**: LangChain, LlamaIndex, CrewAI, AutoGen compatibility
-- **Tools & Memory**: Extensible tool system with vector and conversation memory
-- **Orchestration**: Sequential, parallel, and hierarchical agent execution
-- **Planning**: Goal decomposition and task planning capabilities
+Advanced AI agent orchestration framework supporting autonomous reasoning, tool usage, memory systems, and multi-agent collaboration with enterprise-grade capabilities.
 
 ## Installation
 
 ```bash
-# Basic installation
 pip install commons-agents
+```
 
-# With specific frameworks
-pip install commons-agents[langchain]
-pip install commons-agents[llamaindex]
-pip install commons-agents[crewai]
-pip install commons-agents[all]
+## Features
+
+- **Agent Architectures**: ReAct reasoning, plan-and-execute, conversational, reflexive agents
+- **Multi-Agent Systems**: Team collaboration, role-based agents, hierarchical orchestration
+- **Advanced Memory**: Vector memory, episodic memory, working memory, long-term storage
+- **Rich Tool Ecosystem**: 100+ built-in tools, custom tool creation, dynamic tool loading
+- **Framework Integration**: LangChain, LlamaIndex, CrewAI, AutoGen compatibility
+- **Planning & Reasoning**: Goal decomposition, chain-of-thought, self-reflection
+- **Evaluation**: Comprehensive testing, A/B testing, performance metrics
+- **Enterprise Ready**: Monitoring, logging, security, cost control
+
+## Quick Start
+
+```python
+import asyncio
+from commons_agents.memory import AgentMemory
+from commons_agents.tools import Tool
+
+# Create simple agent
+memory = AgentMemory(max_size=100)
+tool = Tool(
+    name="calculator",
+    description="Basic calculator",
+    parameters={"type": "number"}
+)
+
+# Use agent
+memory.add("Remember: user likes detailed explanations")
+result = await tool.execute({"expression": "2 + 2"})
+print(f"Result: {result}")
 ```
 
 ## Usage

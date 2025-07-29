@@ -1,25 +1,41 @@
 # Commons Workflows
 
-Business process workflow management with support for multiple orchestration engines.
-
-## Features
-
-- **Workflow Patterns**: Saga, parallel execution, conditional branching, loops
-- **Activities**: HTTP, database, approval, timer, signal activities
-- **State Management**: Persistent state, checkpointing, versioning
-- **Engine Support**: Temporal, Argo Workflows, Step Functions, custom engines
-- **Monitoring**: Metrics, tracing, and observability
+Enterprise-grade workflow orchestration framework supporting complex business processes with fault tolerance, state management, and observability across multiple execution engines.
 
 ## Installation
 
 ```bash
-# Basic installation
 pip install commons-workflows
+```
 
-# With specific engines
-pip install commons-workflows[temporal]
-pip install commons-workflows[argo]
-pip install commons-workflows[airflow]
+## Features
+
+- **Multi-Engine Support**: Temporal, Argo Workflows, AWS Step Functions, Apache Airflow
+- **Workflow Patterns**: Saga, parallel execution, conditional branching, loops, fan-out/fan-in
+- **Rich Activities**: HTTP calls, database operations, approval workflows, timers, signals
+- **State Management**: Persistent state, automatic checkpointing, versioning, rollback
+- **Fault Tolerance**: Automatic retries, compensation patterns, circuit breakers
+- **Monitoring**: Real-time metrics, distributed tracing, audit logs
+- **Testing**: Comprehensive testing framework with mocking and simulation
+- **Human Tasks**: Approval workflows, manual interventions, escalations
+
+## Quick Start
+
+```python
+import asyncio
+from commons_workflows import Workflow, WorkflowStep, WorkflowState
+
+# Define workflow steps
+step1 = WorkflowStep("validate", "http_call", {"url": "https://api.example.com/validate"})
+step2 = WorkflowStep("process", "python_function", {"function": "process_data"})
+step3 = WorkflowStep("notify", "email", {"to": "admin@example.com"})
+
+# Create workflow
+workflow = Workflow("data-pipeline", [step1, step2, step3])
+
+# Execute
+result = await workflow.execute({"input": "test data"})
+print(f"Workflow completed: {result.status}")
 ```
 
 ## Usage

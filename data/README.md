@@ -1,26 +1,51 @@
 # Commons Data
 
-Unified database abstractions for SQL, NoSQL, time-series, and vector databases.
-
-## Features
-
-- **Relational Databases**: PostgreSQL, MySQL, SQLite, SQL Server, Oracle
-- **NoSQL Databases**: MongoDB, Redis, DynamoDB, Cassandra, Neo4j
-- **Time-Series Databases**: InfluxDB, TimescaleDB, Prometheus
-- **Vector Databases**: Pinecone, Qdrant, Weaviate, pgvector
-- **Search Engines**: Elasticsearch, OpenSearch
-- **Cloud Databases**: DynamoDB, Cosmos DB, Firestore
+Universal database abstraction layer providing consistent APIs across SQL, NoSQL, time-series, vector, and graph databases with enterprise features.
 
 ## Installation
 
 ```bash
-# Basic installation
 pip install commons-data
+```
 
-# With specific databases
-pip install commons-data[postgres,redis]
-pip install commons-data[mongodb,elasticsearch]
-pip install commons-data[all]  # All databases
+## Features
+
+- **Relational Databases**: PostgreSQL, MySQL, SQLite, SQL Server, Oracle with async support
+- **NoSQL Databases**: MongoDB, Redis, DynamoDB, Cassandra, Couchbase, Neo4j
+- **Time-Series**: InfluxDB, TimescaleDB, Prometheus, AWS Timestream
+- **Vector Databases**: Pinecone, Qdrant, Weaviate, Chroma, pgvector
+- **Search Engines**: Elasticsearch, OpenSearch, Algolia
+- **Cloud Native**: DynamoDB, Cosmos DB, Firestore, BigQuery, Redshift
+- **Advanced Features**: Connection pooling, query optimization, caching, migrations
+- **ORM Support**: SQLAlchemy integration, custom ORM layer
+- **Multi-Database Transactions**: ACID transactions across different database types
+- **Performance**: Prepared statements, batch operations, streaming results
+
+## Quick Start
+
+```python
+import asyncio
+from commons_data import DatabaseClient, Query, QueryBuilder
+from commons_data.factory import DatabaseFactory
+
+async def main():
+    # Create database client
+    client = DatabaseFactory.create("sqlite:///:memory:")
+    
+    # Simple query
+    await client.execute("CREATE TABLE users (id INTEGER, name TEXT)")
+    await client.execute("INSERT INTO users VALUES (1, 'Alice')")
+    
+    # Query builder
+    builder = QueryBuilder("users")
+    query = builder.where("name", "=", "Alice").build()
+    
+    results = await client.execute(query)
+    print(f"Found: {results[0]['name']}")
+    
+    await client.close()
+
+asyncio.run(main())
 ```
 
 ## Usage

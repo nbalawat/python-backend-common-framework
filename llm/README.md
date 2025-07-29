@@ -1,62 +1,511 @@
 # Commons LLM
 
-Unified LLM provider abstractions with advanced features for building AI applications.
-
-## Features
-
-- **Provider Support**: OpenAI, Anthropic, Google, Mistral, Cohere, and local models
-- **Unified API**: Same interface for all providers with streaming support
-- **Framework Integrations**: LangChain, LangGraph, LangSmith, LlamaIndex adapters
-- **Advanced Features**: Function calling, embeddings, caching, fallbacks, A/B testing
-- **Cost Tracking**: Monitor token usage and API costs across providers
+Unified LLM provider abstractions with enterprise-grade features for building production AI applications. Supports all major LLM providers with consistent APIs, advanced prompting, function calling, and cost optimization.
 
 ## Installation
 
 ```bash
-# Basic installation
 pip install commons-llm
-
-# With specific providers
-pip install commons-llm[openai]
-pip install commons-llm[anthropic]
-pip install commons-llm[google]
-pip install commons-llm[all]  # All providers
-
-# With framework integrations
-pip install commons-llm[langchain]
-pip install commons-llm[llamaindex]
 ```
 
-## Usage
+## Features
 
-### Basic Usage
+- **Multi-Provider Support**: OpenAI, Anthropic, Google, AWS Bedrock, Azure OpenAI, Cohere, Mistral, and local models
+- **Unified Interface**: Consistent API across all providers with async/await support
+- **Advanced Prompting**: Template system, few-shot learning, chain-of-thought reasoning
+- **Function Calling**: Tool integration with automatic schema validation  
+- **Stream Processing**: Real-time streaming responses with token-by-token output
+- **Cost Management**: Usage tracking, budget controls, and optimization suggestions
+- **Caching Layer**: Response caching with TTL and semantic similarity matching
+- **Fallback Strategies**: Multi-provider failover and load balancing
+- **A/B Testing**: Model comparison and performance evaluation
+- **Framework Integration**: LangChain, LlamaIndex, and custom framework adapters
+- **Enterprise Features**: Rate limiting, retries, logging, monitoring, and security
+
+## Quick Start
 
 ```python
+import asyncio
 from commons_llm import LLMProvider, Message
 
-# Create provider
-llm = LLMProvider.create(
-    provider="openai",
-    model="gpt-4",
-    api_key="your-api-key",
-    temperature=0.7,
+async def main():
+    # Initialize provider
+    llm = LLMProvider.create(
+        provider="openai",
+        model="gpt-4",
+        api_key="your-api-key"
+    )
+    
+    # Simple completion
+    response = await llm.complete("What is the capital of France?")
+    print(f"Answer: {response.content}")
+    
+    # Chat with conversation
+    messages = [
+        Message(role="system", content="You are a helpful AI assistant."),
+        Message(role="user", content="Explain quantum computing simply.")
+    ]
+    
+    response = await llm.chat(messages)
+    print(f"Explanation: {response.content}")
+    
+    # Streaming response
+    print("Streaming story:")
+    async for chunk in llm.stream("Tell me a short story about AI"):
+        print(chunk.content, end="", flush=True)
+    
+    await llm.close()
+
+asyncio.run(main())
+```
+
+## Detailed Usage Examples
+
+### Provider Configuration and Management
+
+#### Multi-Provider Setup
+```python
+import asyncio
+from commons_llm import LLMProvider, LLMConfig, Message
+from commons_llm.providers import (
+    OpenAIProvider, AnthropicProvider, GoogleProvider,
+    BedrockProvider, AzureOpenAIProvider, CohereProvider
 )
+from datetime import datetime
+import json
 
-# Simple completion
-response = await llm.complete("What is the capital of France?")
-print(response.content)  # "The capital of France is Paris."
+async def demonstrate_provider_setup():
+    """Demonstrate comprehensive provider configuration."""
+    
+    print("=== LLM Provider Configuration ===")
+    
+    # 1. OpenAI Configuration
+    openai_config = LLMConfig(
+        api_key="sk-...",
+        temperature=0.7,
+        max_tokens=2000,
+        top_p=0.9,
+        frequency_penalty=0.1,
+        presence_penalty=0.1,
+        timeout=30.0,
+        retry_attempts=3,
+        retry_backoff=2.0
+    )
+    
+    openai_llm = LLMProvider.create(
+        provider="openai",
+        model="gpt-4-turbo-preview",
+        config=openai_config
+    )
+    
+    print(f"✓ OpenAI configured: {openai_llm.model}")
+    
+    # 2. Anthropic Configuration
+    anthropic_config = LLMConfig(
+        api_key="sk-ant-...",
+        temperature=0.3,
+        max_tokens=4000,
+        timeout=60.0,
+        system_prompt="You are Claude, an AI assistant created by Anthropic."
+    )
+    
+    anthropic_llm = LLMProvider.create(
+        provider="anthropic",
+        model="claude-3-opus-20240229",
+        config=anthropic_config
+    )
+    
+    print(f"✓ Anthropic configured: {anthropic_llm.model}")
+    
+    # 3. Google Gemini Configuration
+    google_config = LLMConfig(
+        api_key="AI...",
+        temperature=0.5,
+        max_tokens=1000,
+        candidate_count=1,
+        safety_settings={
+            "HARM_CATEGORY_HARASSMENT": "BLOCK_MEDIUM_AND_ABOVE",
+            "HARM_CATEGORY_HATE_SPEECH": "BLOCK_MEDIUM_AND_ABOVE",
+            "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_MEDIUM_AND_ABOVE",
+            "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_MEDIUM_AND_ABOVE"
+        }
+    )
+    
+    google_llm = LLMProvider.create(
+        provider="google",
+        model="gemini-pro",
+        config=google_config
+    )
+    
+    print(f"✓ Google configured: {google_llm.model}")
+    
+    # 4. AWS Bedrock Configuration
+    bedrock_config = LLMConfig(
+        aws_access_key_id="AKIA...",
+        aws_secret_access_key="...",
+        aws_region="us-east-1",
+        temperature=0.6,
+        max_tokens=2048
+    )
+    
+    bedrock_llm = LLMProvider.create(
+        provider="bedrock",
+        model="anthropic.claude-3-sonnet-20240229-v1:0",
+        config=bedrock_config
+    )
+    
+    print(f"✓ Bedrock configured: {bedrock_llm.model}")
+    
+    # 5. Azure OpenAI Configuration
+    azure_config = LLMConfig(
+        api_key="...",
+        azure_endpoint="https://your-resource.openai.azure.com/",
+        api_version="2023-12-01-preview",
+        temperature=0.7,
+        max_tokens=1500
+    )
+    
+    azure_llm = LLMProvider.create(
+        provider="azure_openai",
+        model="gpt-4",  # Deployment name in Azure
+        config=azure_config
+    )
+    
+    print(f"✓ Azure OpenAI configured: {azure_llm.model}")
+    
+    # 6. Local Model Configuration
+    from commons_llm.providers import LocalLLMProvider
+    
+    local_config = LLMConfig(
+        model_path="./models/llama-2-7b-chat.gguf",
+        device="cuda",  # or "cpu", "mps"
+        max_tokens=512,
+        temperature=0.8,
+        context_length=4096,
+        gpu_layers=32,  # For GPU acceleration
+        batch_size=8
+    )
+    
+    try:
+        local_llm = LocalLLMProvider(
+            model_name="llama-2-7b-chat",
+            config=local_config
+        )
+        print(f"✓ Local model configured: {local_llm.model}")
+    except Exception as e:
+        print(f"⚠ Local model not available: {e}")
+    
+    # 7. Provider Comparison
+    providers = {
+        "OpenAI GPT-4": openai_llm,
+        "Anthropic Claude-3": anthropic_llm,
+        "Google Gemini": google_llm,
+        "AWS Bedrock": bedrock_llm,
+        "Azure OpenAI": azure_llm
+    }
+    
+    test_prompt = "Explain the concept of machine learning in exactly 50 words."
+    
+    print(f"\nTesting all providers with prompt: '{test_prompt}'")
+    
+    for provider_name, llm in providers.items():
+        try:
+            start_time = datetime.now()
+            response = await llm.complete(test_prompt)
+            duration = (datetime.now() - start_time).total_seconds()
+            
+            word_count = len(response.content.split())
+            
+            print(f"\n{provider_name}:")
+            print(f"  Response time: {duration:.2f}s")
+            print(f"  Word count: {word_count}")
+            print(f"  Cost: ${response.usage.cost:.4f}" if response.usage else "  Cost: N/A")
+            print(f"  Content: {response.content[:100]}...")
+            
+        except Exception as e:
+            print(f"\n{provider_name}: ⚠ Error - {e}")
+    
+    # Cleanup
+    for llm in providers.values():
+        await llm.close()
 
-# Chat completion
-messages = [
-    Message(role="system", content="You are a helpful assistant."),
-    Message(role="user", content="Explain quantum computing in simple terms."),
-]
-response = await llm.chat(messages)
-print(response.content)
+# Advanced message handling
+async def demonstrate_conversation_management():
+    """Demonstrate advanced conversation and message handling."""
+    
+    print("\n=== Advanced Conversation Management ===")
+    
+    llm = LLMProvider.create(
+        provider="openai",
+        model="gpt-4",
+        temperature=0.7
+    )
+    
+    # 1. Multi-turn conversation with context
+    conversation = [
+        Message(
+            role="system",
+            content="You are an expert Python developer and code reviewer. Provide detailed, practical advice."
+        )
+    ]
+    
+    questions = [
+        "What are the key principles of writing clean Python code?",
+        "Can you show me an example of a well-structured Python class?",
+        "How would you refactor this class to follow SOLID principles?",
+        "What testing strategies would you recommend for this code?"
+    ]
+    
+    print("Multi-turn conversation:")
+    
+    for i, question in enumerate(questions, 1):
+        # Add user message
+        conversation.append(Message(role="user", content=question))
+        
+        print(f"\nTurn {i}: {question}")
+        
+        # Get response
+        response = await llm.chat(conversation, max_tokens=300)
+        
+        # Add assistant response to conversation
+        conversation.append(response.to_message())
+        
+        print(f"Assistant: {response.content[:150]}...")
+        
+        # Track conversation metrics
+        total_tokens = sum(msg.token_count for msg in conversation if hasattr(msg, 'token_count'))
+        print(f"Conversation tokens: {total_tokens}")
+    
+    # 2. Message preprocessing and postprocessing
+    from commons_llm.processors import MessageProcessor, ContentFilter
+    
+    class CustomMessageProcessor(MessageProcessor):
+        async def preprocess_messages(self, messages):
+            """Clean and enhance messages before sending."""
+            processed = []
+            
+            for msg in messages:
+                # Remove excessive whitespace
+                content = ' '.join(msg.content.split())
+                
+                # Add context hints
+                if msg.role == "user":
+                    content = f"[Context: Technical discussion] {content}"
+                
+                processed.append(Message(
+                    role=msg.role,
+                    content=content,
+                    metadata=getattr(msg, 'metadata', {})
+                ))
+            
+            return processed
+        
+        async def postprocess_response(self, response):
+            """Enhance response after receiving from LLM."""
+            # Add confidence score based on response characteristics
+            confidence = self._calculate_confidence(response.content)
+            
+            response.metadata = response.metadata or {}
+            response.metadata['confidence'] = confidence
+            response.metadata['processed_at'] = datetime.now().isoformat()
+            
+            return response
+        
+        def _calculate_confidence(self, content):
+            """Simple confidence calculation based on content features."""
+            # More detailed responses generally indicate higher confidence
+            word_count = len(content.split())
+            has_examples = 'example' in content.lower() or 'for instance' in content.lower()
+            has_caveats = any(word in content.lower() for word in ['however', 'but', 'although'])
+            
+            confidence = min(0.5 + (word_count / 200), 0.95)
+            if has_examples:
+                confidence += 0.1
+            if has_caveats:
+                confidence += 0.05  # Nuanced responses are often more reliable
+            
+            return round(confidence, 2)
+    
+    # Use processor
+    processor = CustomMessageProcessor()
+    processed_llm = processor.wrap(llm)
+    
+    test_messages = [
+        Message(role="system", content="You are a helpful coding assistant."),
+        Message(role="user", content="   How   do   I   handle   exceptions   in   Python?   ")
+    ]
+    
+    response = await processed_llm.chat(test_messages)
+    
+    print(f"\nProcessed response:")
+    print(f"Content: {response.content[:100]}...")
+    print(f"Confidence: {response.metadata.get('confidence', 'N/A')}")
+    print(f"Processed at: {response.metadata.get('processed_at', 'N/A')}")
+    
+    # 3. Content filtering and safety
+    content_filter = ContentFilter(
+        blocked_patterns=[
+            r'\b(password|secret|key)\s*[:=]\s*\w+',  # Sensitive data
+            r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b',  # Credit card numbers
+        ],
+        allowed_topics=['programming', 'technology', 'education'],
+        max_toxicity_score=0.7
+    )
+    
+    safe_messages = [
+        "How do I implement authentication in my web app?",
+        "My credit card number is 4532-1234-5678-9012",  # Should be filtered
+        "Can you help me with Python programming?"
+    ]
+    
+    print("\nContent filtering:")
+    for msg_content in safe_messages:
+        is_safe, reason = await content_filter.check_message(msg_content)
+        status = "✓" if is_safe else "⚠"
+        print(f"  {status} '{msg_content[:30]}...': {reason or 'Safe'}")
+    
+    await llm.close()
 
-# Streaming
-async for chunk in llm.stream("Tell me a story"):
-    print(chunk.content, end="")
+# Streaming and real-time responses
+async def demonstrate_streaming():
+    """Demonstrate streaming responses and real-time processing."""
+    
+    print("\n=== Streaming and Real-time Responses ===")
+    
+    llm = LLMProvider.create(
+        provider="openai",
+        model="gpt-4",
+        temperature=0.8
+    )
+    
+    # 1. Basic streaming
+    print("\nBasic streaming:")
+    prompt = "Write a detailed explanation of how neural networks work, including the mathematical concepts."
+    
+    full_response = ""
+    word_count = 0
+    start_time = datetime.now()
+    
+    async for chunk in llm.stream(prompt):
+        content = chunk.content
+        full_response += content
+        word_count += len(content.split())
+        
+        print(content, end="", flush=True)
+        
+        # Show progress periodically
+        if word_count % 50 == 0 and word_count > 0:
+            elapsed = (datetime.now() - start_time).total_seconds()
+            wps = word_count / elapsed if elapsed > 0 else 0
+            print(f" [{word_count} words, {wps:.1f} wps]", end="", flush=True)
+    
+    duration = (datetime.now() - start_time).total_seconds()
+    print(f"\n\nStreaming completed: {word_count} words in {duration:.2f}s")
+    
+    # 2. Streaming with real-time processing
+    print("\n\nStreaming with real-time analysis:")
+    
+    from commons_llm.streaming import StreamProcessor
+    
+    class RealTimeAnalyzer(StreamProcessor):
+        def __init__(self):
+            self.sentence_count = 0
+            self.current_sentence = ""
+            self.topics = set()
+            self.sentiment_scores = []
+        
+        async def process_chunk(self, chunk):
+            """Process each streaming chunk in real-time."""
+            content = chunk.content
+            self.current_sentence += content
+            
+            # Detect sentence completion
+            if any(punct in content for punct in ['.', '!', '?']):
+                await self._analyze_sentence(self.current_sentence.strip())
+                self.current_sentence = ""
+            
+            return chunk
+        
+        async def _analyze_sentence(self, sentence):
+            """Analyze completed sentence."""
+            if len(sentence) < 10:  # Skip very short sentences
+                return
+            
+            self.sentence_count += 1
+            
+            # Simple topic extraction (in practice, use NLP libraries)
+            tech_keywords = {
+                'neural', 'network', 'algorithm', 'machine', 'learning',
+                'artificial', 'intelligence', 'data', 'model', 'training'
+            }
+            
+            sentence_lower = sentence.lower()
+            found_topics = {word for word in tech_keywords if word in sentence_lower}
+            self.topics.update(found_topics)
+            
+            # Simple sentiment (positive indicators)
+            positive_words = {'good', 'excellent', 'effective', 'powerful', 'successful'}
+            sentiment = len([w for w in positive_words if w in sentence_lower])
+            self.sentiment_scores.append(sentiment)
+            
+            # Real-time feedback
+            if self.sentence_count % 5 == 0:
+                avg_sentiment = sum(self.sentiment_scores) / len(self.sentiment_scores)
+                print(f"\n[Analysis: {self.sentence_count} sentences, {len(self.topics)} topics, sentiment: {avg_sentiment:.1f}]")
+    
+    analyzer = RealTimeAnalyzer()
+    
+    prompt = "Explain the evolution of artificial intelligence and its impact on modern technology."
+    
+    print(f"Analyzing: {prompt}")
+    print("Response with real-time analysis:")
+    
+    async for chunk in llm.stream(prompt):
+        processed_chunk = await analyzer.process_chunk(chunk)
+        print(processed_chunk.content, end="", flush=True)
+    
+    print(f"\n\nFinal analysis:")
+    print(f"  Sentences: {analyzer.sentence_count}")
+    print(f"  Topics found: {', '.join(sorted(analyzer.topics))}")
+    print(f"  Average sentiment: {sum(analyzer.sentiment_scores) / len(analyzer.sentiment_scores) if analyzer.sentiment_scores else 0:.2f}")
+    
+    # 3. Streaming with interruption and control
+    print("\n\nStreaming with interruption control:")
+    
+    from commons_llm.streaming import StreamController
+    
+    controller = StreamController()
+    
+    async def monitor_stream():
+        """Monitor stream and interrupt if needed."""
+        await asyncio.sleep(3)  # Let it stream for 3 seconds
+        print("\n[INTERRUPTING STREAM]")
+        controller.interrupt("User requested interruption")
+    
+    # Start monitoring task
+    monitor_task = asyncio.create_task(monitor_stream())
+    
+    prompt = "Write a very long story about a robot learning to understand human emotions."
+    interrupted_response = ""
+    
+    try:
+        async for chunk in llm.stream(prompt, controller=controller):
+            interrupted_response += chunk.content
+            print(chunk.content, end="", flush=True)
+    
+    except asyncio.CancelledError:
+        print("\nStream was interrupted successfully")
+    
+    await monitor_task
+    
+    print(f"Response length before interruption: {len(interrupted_response)} characters")
+    
+    await llm.close()
+
+# Run demonstrations
+asyncio.run(demonstrate_provider_setup())
+asyncio.run(demonstrate_conversation_management())
+asyncio.run(demonstrate_streaming())
 ```
 
 ### Multi-Provider Support
