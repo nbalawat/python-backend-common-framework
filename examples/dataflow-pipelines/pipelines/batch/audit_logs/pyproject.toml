@@ -1,0 +1,15 @@
+[project]
+name = "audit-logs-batch-pipeline"
+version = "0.1.0"
+description = "Batch processing pipeline for audit logs (GCS to BigTable)"
+requires-python = ">=3.9"
+dependencies = [
+    "dataflow-common",
+]
+
+[tool.uv.sources]
+dataflow-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

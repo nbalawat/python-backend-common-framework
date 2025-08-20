@@ -1,0 +1,15 @@
+[project]
+name = "clickstream-analytics-streaming-pipeline"
+version = "0.1.0"
+description = "Streaming pipeline for clickstream analytics (Pub/Sub windowed processing)"
+requires-python = ">=3.9"
+dependencies = [
+    "dataflow-common",
+]
+
+[tool.uv.sources]
+dataflow-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

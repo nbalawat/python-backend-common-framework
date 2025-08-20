@@ -1,0 +1,111 @@
+{
+  "environment": "dev",
+  "project_id": "my-project-dev",
+  "region": "us-central1",
+  "zone": "us-central1-a",
+  
+  "temp_location": "gs://my-project-dev-dataflow-temp/",
+  "staging_location": "gs://my-project-dev-dataflow-staging/",
+  
+  "max_num_workers": 5,
+  "disk_size_gb": 50,
+  "machine_type": "n1-standard-1",
+  "worker_machine_type": "n1-standard-1",
+  
+  "batch": {
+    "user_events": {
+      "input_bucket": "my-project-dev-data",
+      "input_prefix": "user_events/raw/",
+      "bigtable_instance": "dev-instance",
+      "bigtable_table": "user_events",
+      "bigtable_column_family": "cf",
+      "batch_size": 50,
+      "bigquery_dataset": "analytics_dev"
+    },
+    "transaction_data": {
+      "input_bucket": "my-project-dev-data",
+      "input_prefix": "transactions/raw/",
+      "bigtable_instance": "dev-instance", 
+      "bigtable_table": "transactions",
+      "bigtable_column_family": "cf",
+      "batch_size": 50,
+      "bigquery_dataset": "finance_dev"
+    },
+    "audit_logs": {
+      "input_bucket": "my-project-dev-data",
+      "input_prefix": "audit_logs/raw/",
+      "bigtable_instance": "dev-instance",
+      "bigtable_table": "audit_logs", 
+      "bigtable_column_family": "cf",
+      "batch_size": 50,
+      "bigquery_dataset": "security_dev"
+    }
+  },
+  
+  "streaming": {
+    "real_time_events": {
+      "subscription": "projects/my-project-dev/subscriptions/real-time-events-sub",
+      "topic": "projects/my-project-dev/topics/real-time-events",
+      "dead_letter_topic": "projects/my-project-dev/topics/real-time-events-dlq",
+      "alert_topic": "projects/my-project-dev/topics/alerts",
+      "bigtable_instance": "dev-instance",
+      "bigtable_table": "real_time_events",
+      "bigtable_column_family": "cf",
+      "bigtable_batch_size": 50,
+      "bigtable_flush_interval_seconds": 30,
+      "window_size_seconds": 60,
+      "allowed_lateness_seconds": 300
+    },
+    "clickstream_analytics": {
+      "subscription": "projects/my-project-dev/subscriptions/clickstream-sub",
+      "topic": "projects/my-project-dev/topics/clickstream",
+      "dead_letter_topic": "projects/my-project-dev/topics/clickstream-dlq",
+      "bigtable_instance": "dev-instance",
+      "bigtable_table": "clickstream",
+      "bigtable_column_family": "cf",
+      "window_size_seconds": 300,
+      "allowed_lateness_seconds": 600
+    },
+    "iot_sensors": {
+      "subscription": "projects/my-project-dev/subscriptions/iot-sensors-sub",
+      "topic": "projects/my-project-dev/topics/iot-sensors",
+      "dead_letter_topic": "projects/my-project-dev/topics/iot-sensors-dlq",
+      "bigtable_instance": "dev-instance",
+      "bigtable_table": "sensor_data",
+      "bigtable_column_family": "cf",
+      "window_size_seconds": 60,
+      "allowed_lateness_seconds": 300
+    },
+    "fraud_detection": {
+      "subscription": "projects/my-project-dev/subscriptions/fraud-detection-sub",
+      "topic": "projects/my-project-dev/topics/transactions",
+      "dead_letter_topic": "projects/my-project-dev/topics/fraud-detection-dlq",
+      "alert_topic": "projects/my-project-dev/topics/fraud-alerts",
+      "bigtable_instance": "dev-instance",
+      "bigtable_table": "fraud_scores",
+      "bigtable_column_family": "cf",
+      "window_size_seconds": 120,
+      "ml_model_endpoint": "projects/my-project-dev/locations/us-central1/endpoints/fraud-model-dev"
+    }
+  },
+  
+  "monitoring": {
+    "enable_monitoring": true,
+    "monitoring_namespace": "dataflow_dev",
+    "alert_email": "dev-team@example.com",
+    "slack_webhook": "https://hooks.slack.com/services/dev-channel"
+  },
+  
+  "security": {
+    "service_account": "dataflow-dev@my-project-dev.iam.gserviceaccount.com",
+    "use_public_ips": true,
+    "network": "default",
+    "subnetwork": "default"
+  },
+  
+  "dataflow_options": {
+    "use_runner_v2": true,
+    "sdk_container_image": "gcr.io/my-project-dev/dataflow-python:latest",
+    "sdk_location": "container"
+  }
+}

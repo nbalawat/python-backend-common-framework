@@ -1,0 +1,319 @@
+name: Dataflow Pipelines CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'examples/dataflow-pipelines/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'examples/dataflow-pipelines/**'
+
+env:
+  PYTHON_VERSION: "3.11"
+  UV_VERSION: "0.1.18"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+      with:
+        version: ${{ env.UV_VERSION }}
+    
+    - name: Set up workspace
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv sync --all-extras
+        uv pip install pytest-xdist pytest-timeout
+    
+    - name: Run linting
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv run ruff check .
+        uv run black --check .
+    
+    - name: Run type checking
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv run mypy common/src/ --ignore-missing-imports
+    
+    - name: Run unit tests
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv run pytest -v -m "unit" --cov=common --cov=pipelines \
+          --cov-report=xml --cov-report=term-missing \
+          --timeout=300
+    
+    - name: Run integration tests
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv run pytest -v tests/test_complete_setup.py --timeout=600
+    
+    - name: Run pipeline-specific tests
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv run pytest -v pipelines/batch/user_events/tests/ --timeout=300
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: examples/dataflow-pipelines/coverage.xml
+        flags: dataflow-pipelines
+        name: dataflow-coverage
+        fail_ci_if_error: true
+
+  build-templates:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+    
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+    
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker
+    
+    - name: Build Dataflow Flex Templates
+      working-directory: examples/dataflow-pipelines
+      run: |
+        # Build templates for key pipelines
+        ./deployment/scripts/build_templates.sh user_events
+        ./deployment/scripts/build_templates.sh real_time_events
+      env:
+        PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        TEMPLATE_REGISTRY: gcr.io/${{ secrets.GCP_PROJECT_ID }}
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: [test, build-templates]
+    if: github.ref == 'refs/heads/develop'
+    environment: development
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+    
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY_DEV }}
+        project_id: ${{ secrets.GCP_PROJECT_ID_DEV }}
+    
+    - name: Deploy to Development
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv sync --all-extras
+        
+        # Deploy batch pipelines
+        ./deployment/scripts/deploy_pipeline.sh batch user_events dev \
+          --max_num_workers=2 \
+          --machine_type=n1-standard-1
+        
+        # Deploy streaming pipelines
+        ./deployment/scripts/deploy_pipeline.sh streaming real_time_events dev \
+          --max_num_workers=2 \
+          --machine_type=n1-standard-1
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY_DEV }}
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [test, build-templates]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+    
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY_STAGING }}
+        project_id: ${{ secrets.GCP_PROJECT_ID_STAGING }}
+    
+    - name: Deploy to Staging
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv sync --all-extras
+        
+        # Deploy with staging configuration
+        ./deployment/scripts/deploy_pipeline.sh batch user_events staging
+        ./deployment/scripts/deploy_pipeline.sh streaming real_time_events staging
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY_STAGING }}
+    
+    - name: Run smoke tests
+      working-directory: examples/dataflow-pipelines
+      run: |
+        # Run smoke tests against staging environment
+        uv run pytest tests/test_smoke.py -v --env=staging
+      env:
+        TEST_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGING }}
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+    
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY_PROD }}
+        project_id: ${{ secrets.GCP_PROJECT_ID_PROD }}
+    
+    - name: Deploy to Production
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv sync --all-extras
+        
+        # Deploy with production configuration and approval
+        ./deployment/scripts/deploy_pipeline.sh batch user_events prod
+        ./deployment/scripts/deploy_pipeline.sh streaming real_time_events prod
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY_PROD }}
+    
+    - name: Post-deployment verification
+      working-directory: examples/dataflow-pipelines
+      run: |
+        # Verify deployments are running
+        python deployment/scripts/verify_deployments.py --env=prod
+      env:
+        PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_PROD }}
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run security scan
+      uses: securecodewarrior/github-action-add-sarif@v1
+      with:
+        sarif-file: security-results.sarif
+    
+    - name: Run dependency check
+      working-directory: examples/dataflow-pipelines
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || true
+    
+    - name: Upload security results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: security-results.sarif
+
+  performance-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'performance-test')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+    
+    - name: Run performance tests
+      working-directory: examples/dataflow-pipelines
+      run: |
+        uv sync --all-extras
+        uv run pytest tests/test_performance.py -v --benchmark-json=benchmark.json
+      env:
+        RUN_SLOW_TESTS: "1"
+    
+    - name: Upload benchmark results
+      uses: benchmark-action/github-action-benchmark@v1
+      with:
+        name: Dataflow Pipeline Benchmarks
+        tool: pytest
+        output-file-path: examples/dataflow-pipelines/benchmark.json
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: always() && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Notify Slack on Success
+      if: needs.deploy-production.result == 'success'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: "🎉 Dataflow pipelines deployed successfully to production!"
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+    
+    - name: Notify Slack on Failure
+      if: needs.deploy-production.result == 'failure'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: "❌ Dataflow pipeline deployment failed!"
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}

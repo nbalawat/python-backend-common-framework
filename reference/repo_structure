@@ -1,0 +1,354 @@
+python-commons/
+├── pyproject.toml                    # Root workspace configuration
+├── uv.lock                          # Workspace lock file
+├── .python-version                  # Python version (3.11)
+├── README.md                        # Project documentation
+├── LICENSE                          # License file
+├── Makefile                         # Development tasks
+├── .github/                         # GitHub configuration
+│   ├── workflows/
+│   │   ├── ci.yml                  # CI/CD pipeline
+│   │   ├── release.yml             # Release automation
+│   │   └── security.yml            # Security scanning
+│   └── dependabot.yml              # Dependency updates
+│
+├── core/                            # Core utilities library
+│   ├── pyproject.toml
+│   ├── README.md
+│   ├── src/
+│   │   └── commons_core/
+│   │       ├── __init__.py
+│   │       ├── config/             # Configuration management
+│   │       │   ├── __init__.py
+│   │       │   ├── manager.py      # ConfigManager
+│   │       │   ├── providers.py    # Config providers
+│   │       │   └── validators.py   # Config validation
+│   │       ├── logging/            # Structured logging
+│   │       │   ├── __init__.py
+│   │       │   ├── logger.py       # Logger setup
+│   │       │   ├── formatters.py   # Log formatters
+│   │       │   └── handlers.py     # Custom handlers
+│   │       ├── errors/             # Error handling
+│   │       │   ├── __init__.py
+│   │       │   ├── exceptions.py   # Custom exceptions
+│   │       │   ├── handlers.py     # Error handlers
+│   │       │   └── retry.py        # Retry logic
+│   │       ├── types/              # Common types
+│   │       │   ├── __init__.py
+│   │       │   ├── models.py       # Pydantic models
+│   │       │   ├── validators.py   # Type validators
+│   │       │   └── serializers.py  # Serialization
+│   │       └── utils/              # Utilities
+│   │           ├── __init__.py
+│   │           ├── async_utils.py  # Async helpers
+│   │           ├── datetime.py     # Date/time utils
+│   │           └── decorators.py   # Decorators
+│   └── tests/
+│
+├── cloud/                           # Cloud provider abstractions
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_cloud/
+│   │       ├── __init__.py
+│   │       ├── abstractions/       # Provider interfaces
+│   │       │   ├── __init__.py
+│   │       │   ├── storage.py      # Storage interface
+│   │       │   ├── compute.py      # Compute interface
+│   │       │   └── secrets.py      # Secrets interface
+│   │       ├── providers/          # Provider implementations
+│   │       │   ├── __init__.py
+│   │       │   ├── aws/
+│   │       │   │   ├── s3.py
+│   │       │   │   ├── ec2.py
+│   │       │   │   └── secrets_manager.py
+│   │       │   ├── gcp/
+│   │       │   │   ├── gcs.py
+│   │       │   │   ├── compute.py
+│   │       │   │   └── secret_manager.py
+│   │       │   └── azure/
+│   │       │       ├── blob.py
+│   │       │       ├── vm.py
+│   │       │       └── key_vault.py
+│   │       └── factory.py          # Provider factory
+│   └── tests/
+│
+├── k8s/                            # Kubernetes utilities
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_k8s/
+│   │       ├── __init__.py
+│   │       ├── client/             # K8s client
+│   │       │   ├── __init__.py
+│   │       │   ├── manager.py      # Client manager
+│   │       │   └── async_client.py # Async client
+│   │       ├── operators/          # Custom operators
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py         # Base operator
+│   │       │   └── crd.py          # CRD handling
+│   │       ├── resources/          # Resource management
+│   │       │   ├── __init__.py
+│   │       │   ├── deployments.py
+│   │       │   ├── services.py
+│   │       │   └── configmaps.py
+│   │       └── argo/               # Argo integration
+│   │           ├── __init__.py
+│   │           ├── workflows.py
+│   │           └── events.py
+│   └── tests/
+│
+├── testing/                        # Testing utilities
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_testing/
+│   │       ├── __init__.py
+│   │       ├── fixtures/           # Test fixtures
+│   │       │   ├── __init__.py
+│   │       │   ├── async.py        # Async fixtures
+│   │       │   ├── databases.py    # DB fixtures
+│   │       │   └── mocks.py        # Mock objects
+│   │       ├── helpers/            # Test helpers
+│   │       │   ├── __init__.py
+│   │       │   ├── assertions.py   # Custom assertions
+│   │       │   └── generators.py   # Data generators
+│   │       └── integration/        # Integration test utils
+│   │           ├── __init__.py
+│   │           └── containers.py   # Test containers
+│   └── tests/
+│
+├── events/                         # Event-driven architecture
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_events/
+│   │       ├── __init__.py
+│   │       ├── abstractions/       # Event interfaces
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py         # Base classes
+│   │       │   └── handlers.py     # Event handlers
+│   │       ├── producers/          # Event producers
+│   │       │   ├── __init__.py
+│   │       │   ├── kafka.py
+│   │       │   ├── pubsub.py
+│   │       │   ├── rabbitmq.py
+│   │       │   └── sns.py
+│   │       ├── consumers/          # Event consumers
+│   │       │   ├── __init__.py
+│   │       │   ├── kafka.py
+│   │       │   ├── pubsub.py
+│   │       │   └── rabbitmq.py
+│   │       ├── schemas/            # Event schemas
+│   │       │   ├── __init__.py
+│   │       │   ├── registry.py     # Schema registry
+│   │       │   └── validation.py   # Schema validation
+│   │       └── streaming/          # Stream processing
+│   │           ├── __init__.py
+│   │           ├── processor.py
+│   │           └── pipelines.py
+│   └── tests/
+│
+├── pipelines/                      # Data pipeline abstractions
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_pipelines/
+│   │       ├── __init__.py
+│   │       ├── abstractions/       # Pipeline interfaces
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   └── connectors.py
+│   │       ├── engines/            # Processing engines
+│   │       │   ├── __init__.py
+│   │       │   ├── spark.py
+│   │       │   ├── polars.py
+│   │       │   ├── duckdb.py
+│   │       │   └── beam.py
+│   │       ├── transforms/         # Data transformations
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   ├── aggregations.py
+│   │       │   └── filters.py
+│   │       ├── connectors/         # Data connectors
+│   │       │   ├── __init__.py
+│   │       │   ├── databases.py
+│   │       │   ├── files.py
+│   │       │   └── apis.py
+│   │       └── orchestration/      # Pipeline orchestration
+│   │           ├── __init__.py
+│   │           ├── argo.py
+│   │           └── airflow.py
+│   └── tests/
+│
+├── workflows/                      # Business process workflows
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_workflows/
+│   │       ├── __init__.py
+│   │       ├── abstractions/       # Workflow interfaces
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   └── activities.py
+│   │       ├── patterns/           # Workflow patterns
+│   │       │   ├── __init__.py
+│   │       │   ├── saga.py         # Saga pattern
+│   │       │   ├── parallel.py     # Parallel execution
+│   │       │   └── conditional.py  # Conditional flows
+│   │       ├── engines/            # Workflow engines
+│   │       │   ├── __init__.py
+│   │       │   ├── temporal.py
+│   │       │   ├── argo.py
+│   │       │   └── simple.py
+│   │       ├── activities/         # Common activities
+│   │       │   ├── __init__.py
+│   │       │   ├── http.py
+│   │       │   ├── database.py
+│   │       │   └── approval.py
+│   │       └── monitoring/         # Workflow monitoring
+│   │           ├── __init__.py
+│   │           └── metrics.py
+│   └── tests/
+│
+├── llm/                           # LLM abstractions
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_llm/
+│   │       ├── __init__.py
+│   │       ├── abstractions/       # LLM interfaces
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   └── streaming.py
+│   │       ├── providers/          # LLM providers
+│   │       │   ├── __init__.py
+│   │       │   ├── openai.py
+│   │       │   ├── anthropic.py
+│   │       │   ├── google.py
+│   │       │   ├── mistral.py
+│   │       │   └── local.py
+│   │       ├── integrations/       # Framework integrations
+│   │       │   ├── __init__.py
+│   │       │   ├── langchain.py
+│   │       │   ├── langgraph.py
+│   │       │   ├── langsmith.py
+│   │       │   └── llamaindex.py
+│   │       ├── prompts/            # Prompt management
+│   │       │   ├── __init__.py
+│   │       │   ├── template.py
+│   │       │   ├── library.py
+│   │       │   └── optimization.py
+│   │       ├── chains/             # LLM chains
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   └── conditional.py
+│   │       └── embeddings/         # Embedding management
+│   │           ├── __init__.py
+│   │           └── cache.py
+│   └── tests/
+│
+├── agents/                         # Agent abstractions
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_agents/
+│   │       ├── __init__.py
+│   │       ├── core/               # Core agent functionality
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py         # Base agent
+│   │       │   ├── react.py        # ReAct pattern
+│   │       │   └── state.py        # Agent state
+│   │       ├── integrations/       # Framework integrations
+│   │       │   ├── __init__.py
+│   │       │   ├── langchain_agents.py
+│   │       │   ├── llamaindex_agents.py
+│   │       │   ├── crewai.py
+│   │       │   └── autogen.py
+│   │       ├── tools/              # Agent tools
+│   │       │   ├── __init__.py
+│   │       │   ├── common.py       # Common tools
+│   │       │   ├── search.py       # Search tools
+│   │       │   └── code.py         # Code execution
+│   │       ├── memory/             # Memory systems
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   ├── vector.py       # Vector memory
+│   │       │   └── conversation.py # Conversation memory
+│   │       ├── planning/           # Planning systems
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   └── hierarchical.py
+│   │       └── execution/          # Execution orchestration
+│   │           ├── __init__.py
+│   │           ├── orchestrator.py
+│   │           └── parallel.py
+│   └── tests/
+│
+├── data/                           # Database abstractions
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── commons_data/
+│   │       ├── __init__.py
+│   │       ├── abstractions/       # Database interfaces
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   └── transactions.py
+│   │       ├── relational/         # RDBMS adapters
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   ├── postgres.py
+│   │       │   ├── mysql.py
+│   │       │   └── sqlite.py
+│   │       ├── nosql/              # NoSQL adapters
+│   │       │   ├── __init__.py
+│   │       │   ├── document.py     # Document stores
+│   │       │   ├── keyvalue.py     # Key-value stores
+│   │       │   └── graph.py        # Graph databases
+│   │       ├── cloud/              # Cloud databases
+│   │       │   ├── __init__.py
+│   │       │   ├── dynamodb.py
+│   │       │   ├── cosmosdb.py
+│   │       │   └── firestore.py
+│   │       ├── timeseries/         # Time-series databases
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   ├── influxdb.py
+│   │       │   └── prometheus.py
+│   │       ├── vector/             # Vector databases
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   ├── pinecone.py
+│   │       │   ├── qdrant.py
+│   │       │   └── weaviate.py
+│   │       ├── orm/                # ORM models
+│   │       │   ├── __init__.py
+│   │       │   ├── models.py
+│   │       │   └── migrations.py
+│   │       └── factory.py          # Database factory
+│   └── tests/
+│
+├── k8s/                            # Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── rbac.yaml
+│   ├── configmaps/
+│   ├── secrets/
+│   ├── deployments/
+│   ├── services/
+│   ├── ingress/
+│   └── argo/
+│
+├── docker/                         # Docker configurations
+│   ├── Dockerfile
+│   ├── Dockerfile.dev
+│   └── docker-compose.yml
+│
+├── scripts/                        # Development scripts
+│   ├── setup-dev.sh
+│   ├── run-tests.sh
+│   ├── build-all.sh
+│   └── deploy.sh
+│
+├── docs/                          # Documentation
+│   ├── getting-started.md
+│   ├── architecture.md
+│   ├── api/
+│   └── examples/
+│
+└── examples/                      # Example applications
+    ├── research-assistant/
+    ├── customer-service/
+    ├── data-pipeline/
+    └── agent-workflow/
